@@ -32,20 +32,20 @@ export default function createServerActionQueue() {
 
     const item = { id, action }
 
-    if (type.split('/')[1] !== 'upsert') {
-      queue.push(item)
-      return dfd.promise
+    if (type.split('/')[1] === 'upsert') {
+      _.remove(queue, item => {
+        const { type: itemType, payload: itemPayload } = item.action
+        if (type !== itemType) return false
+        if (itemPayload.id !== payload.id) return false
+
+        // Check that all keys of itemPayload are in payload.
+        if(_.difference(_.keys(itemPayload),_.keys(payload)).length === 0) {
+          console.warn("Removing server action from queue", item.id, item)
+          deferreds[id].push(...deferreds[item.id])
+          return true
+        }
+      })
     }
-
-    _.remove(queue, item => {
-      const { type: itemType, payload: itemPayload } = item.action
-      if (type !== itemType) return false
-      if (itemPayload.id !== payload.id) return false
-
-      // Check that all keys of itemPayload are in payload.
-      deferreds[id].push(...deferreds[item.id])
-      return _.difference(_.keys(itemPayload),_.keys(payload)).length === 0
-    })
 
     queue.push(item)
     return dfd.promise

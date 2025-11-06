@@ -18,6 +18,7 @@ function createPayloadHandler({ dispatch, serverActionQueue, transportAdapter, c
     let lastCheckAt = new Date();
     let updateDeadline = null;
     let checkInterval;
+    let midSyncTimeout;
     function getPayload() {
         setTimeout(() => transportAdapter.getPayload(config), 1000);
     }
@@ -26,12 +27,15 @@ function createPayloadHandler({ dispatch, serverActionQueue, transportAdapter, c
     }
     const tGetPayload = lodash_1.default.throttle(getPayload, 10000);
     function processQueue(model) {
+        if (midSyncTimeout) {
+            clearTimeout(midSyncTimeout);
+        }
         console.debug("processQueue", model, idx[model], patchQueue[model]);
         lastCheckAt = new Date();
         if (patchQueue[model][idx[model]]) {
             if (!serverActionQueue.fullySynced()) {
                 console.debug(serverActionQueue.getData());
-                setTimeout(() => processQueue(model), 100);
+                midSyncTimeout = setTimeout(() => processQueue(model), 100);
                 return;
             }
             const { payload, destroy, id, type } = patchQueue[model][idx[model]];
@@ -75,7 +79,7 @@ function createPayloadHandler({ dispatch, serverActionQueue, transportAdapter, c
         if (type === 'payload') {
             idx[model] = newIdx;
             // Clear any old changes left in the queue
-            patchQueue[model] = lodash_1.default.pick(patchQueue[model], lodash_1.default.keys(patchQueue[model]).filter(k => k > newIdx + 1));
+            patchQueue[model] = lodash_1.default.pick(patchQueue[model], lodash_1.default.keys(patchQueue[model]).filter(k => k > newIdx));
         }
         patchQueue[model][newIdx] = camelizeKeys(Object.assign(Object.assign({}, data), { model }));
         console.debug("Added to queue", model, idx[model], camelizeKeys(Object.assign(Object.assign({}, data), { model })), serverActionQueue.getData());

@@ -27,6 +27,7 @@ function createOptDis(schema, dispatch, restClient, serverActionQueue) {
         restClient.post('/jason/api/action', action)
             .then(({ data }) => serverActionQueue.itemProcessed(id, data))
             .catch(error => {
+            console.error("Server action failed", error);
             dispatch({ type: 'jason/upsert', payload: { error } });
             serverActionQueue.itemFailed(id, error);
         });

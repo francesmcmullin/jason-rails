@@ -18,6 +18,7 @@ export default function createPayloadHandler({ dispatch, serverActionQueue, tran
   let lastCheckAt = new Date()
   let updateDeadline = null as Date | null
   let checkInterval
+  let midSyncTimeout
 
   function getPayload() {
     setTimeout(() => transportAdapter.getPayload(config), 1000)
@@ -30,12 +31,13 @@ export default function createPayloadHandler({ dispatch, serverActionQueue, tran
   const tGetPayload = _.throttle(getPayload, 10000)
 
   function processQueue(model) {
+    if(midSyncTimeout) { clearTimeout(midSyncTimeout) }
     console.debug("processQueue", model, idx[model], patchQueue[model])
     lastCheckAt = new Date()
     if (patchQueue[model][idx[model]]) {
       if (!serverActionQueue.fullySynced()) {
         console.debug(serverActionQueue.getData())
-        setTimeout(() => processQueue(model), 100)
+        midSyncTimeout = setTimeout(() => processQueue(model), 100)
         return
       }
 
@@ -81,7 +83,7 @@ export default function createPayloadHandler({ dispatch, serverActionQueue, tran
     if (type === 'payload') {
       idx[model] = newIdx
       // Clear any old changes left in the queue
-      patchQueue[model] = _.pick(patchQueue[model], _.keys(patchQueue[model]).filter(k => k > newIdx + 1))
+      patchQueue[model] = _.pick(patchQueue[model], _.keys(patchQueue[model]).filter(k => k > newIdx))
     }
 
     patchQueue[model][newIdx] = camelizeKeys({ ...data, model })

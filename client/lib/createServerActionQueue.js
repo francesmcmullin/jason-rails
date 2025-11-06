@@ -27,20 +27,21 @@ function createServerActionQueue() {
         const dfd = new Deferred();
         deferreds[id] = [dfd];
         const item = { id, action };
-        if (type.split('/')[1] !== 'upsert') {
-            queue.push(item);
-            return dfd.promise;
+        if (type.split('/')[1] === 'upsert') {
+            lodash_1.default.remove(queue, item => {
+                const { type: itemType, payload: itemPayload } = item.action;
+                if (type !== itemType)
+                    return false;
+                if (itemPayload.id !== payload.id)
+                    return false;
+                // Check that all keys of itemPayload are in payload.
+                if (lodash_1.default.difference(lodash_1.default.keys(itemPayload), lodash_1.default.keys(payload)).length === 0) {
+                    console.warn("Removing server action from queue", item.id, item);
+                    deferreds[id].push(...deferreds[item.id]);
+                    return true;
+                }
+            });
         }
-        lodash_1.default.remove(queue, item => {
-            const { type: itemType, payload: itemPayload } = item.action;
-            if (type !== itemType)
-                return false;
-            if (itemPayload.id !== payload.id)
-                return false;
-            // Check that all keys of itemPayload are in payload.
-            deferreds[id].push(...deferreds[item.id]);
-            return lodash_1.default.difference(lodash_1.default.keys(itemPayload), lodash_1.default.keys(payload)).length === 0;
-        });
         queue.push(item);
         return dfd.promise;
     }
