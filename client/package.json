@@ -1,12 +1,13 @@
 {
-  "name": "@jamesr2323/jason",
-  "version": "0.8.6",
+  "name": "@cocoa/jason",
+  "version": "0.8.8",
   "module": "./lib/index.js",
   "types": "./lib/index.d.ts",
   "scripts": {
     "build": "tsc",
     "test": "jest"
   },
+  "publishConfig": { "access": "public" },
   "dependencies": {
     "@rails/actioncable": "^6.0.3-4",
     "axios": "^0.21.0",

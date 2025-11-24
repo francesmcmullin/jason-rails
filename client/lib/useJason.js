@@ -35,14 +35,21 @@ function useJason({ reducers, middleware = [], enhancers = [], transportOptions 
             let payloadHandlers = {};
             let configs = {};
             let subOptions = {};
-            function handlePayload(payload) {
+            function handlePayload(payload, retry) {
+                var _a, _b;
                 const { md5Hash } = payload;
-                const { handlePayload } = payloadHandlers[md5Hash] || {};
-                if (handlePayload) {
-                    handlePayload(payload);
+                const payloadHandler = (payloadHandlers[md5Hash] || {}).handlePayload;
+                if (payloadHandler) {
+                    payloadHandler(payload);
                 }
                 else {
-                    console.warn("Payload arrived with no handler", payload, payloadHandlers);
+                    if (retry) {
+                        console.warn("Payload arrived with no handler, discarding payload " + payload.model + ((_a = payload.payload) === null || _a === void 0 ? void 0 : _a.id), payload, payloadHandlers);
+                    }
+                    else {
+                        console.warn("Payload arrived with no handler, retrying on next tick " + payload.model + ((_b = payload.payload) === null || _b === void 0 ? void 0 : _b.id), payloadHandlers);
+                        setTimeout(() => handlePayload(payload, true), 0);
+                    }
                 }
             }
             const transportAdapter = createTransportAdapter_1.default(jasonConfig, handlePayload, dispatch, () => lodash_1.default.keys(configs).forEach(md5Hash => createSubscription(configs[md5Hash], subOptions[md5Hash])), transportOptions);

@@ -45,14 +45,19 @@ export default function useJason({ reducers, middleware = [], enhancers = [], tr
       let configs = {}
       let subOptions = {}
 
-      function handlePayload(payload) {
+      function handlePayload(payload, retry) {
         const { md5Hash } = payload
 
-        const { handlePayload } = payloadHandlers[md5Hash] || {}
-        if (handlePayload) {
-          handlePayload(payload)
+        const payloadHandler = (payloadHandlers[md5Hash] || {}).handlePayload
+        if (payloadHandler) {
+          payloadHandler(payload)
         } else {
-          console.warn("Payload arrived with no handler", payload, payloadHandlers)
+          if(retry) {
+            console.warn("Payload arrived with no handler, discarding payload " + payload.model + payload.payload?.id, payload, payloadHandlers)
+          } else {
+            console.warn("Payload arrived with no handler, retrying on next tick " + payload.model + payload.payload?.id, payloadHandlers)
+            setTimeout(() => handlePayload(payload, true), 0)
+          }
         }
       }
 
