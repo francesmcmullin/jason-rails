@@ -3,11 +3,13 @@ class Jason::ConsistencyChecker
   attr_reader :inconsistent
 
   def self.check_all(fix: false)
+    inconsistent_count = 0
     Jason::Subscription.all.each do |sub|
       next if sub.consumer_count == 0
       checker = Jason::ConsistencyChecker.new(sub)
       result = checker.check
       if checker.inconsistent?
+        inconsistent_count += 1
         pp sub.config
         pp result
         if fix
@@ -15,6 +17,8 @@ class Jason::ConsistencyChecker
         end
       end
     end
+
+    pp "Found #{inconsistent_count} subscriptions with problems, ran with fix: #{fix}"
   end
 
   def self.fix_all
@@ -40,7 +44,7 @@ class Jason::ConsistencyChecker
     edge_set = subscription.load_ids_for_sub_models(subscription.model, nil)
 
     result = cached_payload.map do |model_name, data|
-      cached_payload_instance_ids = data[:payload].map { |row| row['id'] }
+      cached_payload_instance_ids = data[:payload].map { |row| row.kind_of?(Integer) ? row : row['id'] }
 
       model_idx = edge_set[:model_names].index(model_name)
       if model_idx.present?
