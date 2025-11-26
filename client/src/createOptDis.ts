@@ -14,12 +14,19 @@ function enrich(type, payload) {
 export default function createOptDis(schema, dispatch, restClient, serverActionQueue) {
   const plurals = _.keys(schema).map(k => pluralize(k))
 
+  function notify() {
+    const { queue, inFlight } = serverActionQueue.getData()
+    dispatch({ type: 'jason/upsert', payload: { queueSize: queue.length, inFlight } })
+  }
+
   function enqueueServerAction (action) {
+    notify()
     return serverActionQueue.addItem(action)
   }
 
   function dispatchServerAction() {
     const item = serverActionQueue.getItem()
+    notify()
     if (!item) return
 
     const { id, action } = item
@@ -30,7 +37,7 @@ export default function createOptDis(schema, dispatch, restClient, serverActionQ
       console.error("Server action failed", error);
       dispatch({ type: 'jason/upsert', payload: { error } })
       serverActionQueue.itemFailed(id, error)
-    })
+    }).then(notify)
   }
 
   setInterval(dispatchServerAction, 10)

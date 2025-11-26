@@ -16,11 +16,17 @@ function enrich(type, payload) {
 }
 function createOptDis(schema, dispatch, restClient, serverActionQueue) {
     const plurals = lodash_1.default.keys(schema).map(k => pluralize_1.default(k));
+    function notify() {
+        const { queue, inFlight } = serverActionQueue.getData();
+        dispatch({ type: 'jason/upsert', payload: { queueSize: queue.length, inFlight } });
+    }
     function enqueueServerAction(action) {
+        notify();
         return serverActionQueue.addItem(action);
     }
     function dispatchServerAction() {
         const item = serverActionQueue.getItem();
+        notify();
         if (!item)
             return;
         const { id, action } = item;
@@ -30,7 +36,7 @@ function createOptDis(schema, dispatch, restClient, serverActionQueue) {
             console.error("Server action failed", error);
             dispatch({ type: 'jason/upsert', payload: { error } });
             serverActionQueue.itemFailed(id, error);
-        });
+        }).then(notify);
     }
     setInterval(dispatchServerAction, 10);
     return function (action) {
