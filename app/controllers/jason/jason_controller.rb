@@ -37,7 +37,7 @@ class Jason::JasonController < ::ApplicationController
 
       all_instance_ids = model.send(api_model.scope || :all).where(priority_filter).where.not(id: instance.id).order(:priority).pluck(:id)
       all_instance_ids.insert(priority.to_i, instance.id)
-      all_instance_ids.compact # avoid nils in case instances have moved scope since the request was made
+      all_instance_ids.compact! # avoid nils in case instances have moved scope since the request was made
 
       all_instance_ids.each_with_index do |id, i|
         model.find(id).update!(priority: i)
