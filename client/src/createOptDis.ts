@@ -11,8 +11,9 @@ function enrich(type, payload) {
   return payload
 }
 
-export default function createOptDis(schema, dispatch, restClient, serverActionQueue) {
+export default function createOptDis(schema, dispatch, restClient, serverActionQueue, dispatchDelay) {
   const plurals = _.keys(schema).map(k => pluralize(k))
+  let timeout = 0;
 
   function notify() {
     const { queue, inFlight } = serverActionQueue.getData()
@@ -28,7 +29,7 @@ export default function createOptDis(schema, dispatch, restClient, serverActionQ
     try {
       const item = serverActionQueue.getItem()
       notify()
-      if (!item) return
+      if (!item) return queueDispatchServerAction();
 
       const { id, action } = item
 
@@ -39,12 +40,18 @@ export default function createOptDis(schema, dispatch, restClient, serverActionQ
         dispatch({ type: 'jason/upsert', payload: { error } })
         serverActionQueue.itemFailed(id, error)
       }).then(notify)
-    } finally {
-      setTimeout(dispatchServerAction, 10)
+      .then(queueDispatchServerAction, queueDispatchServerAction)
+    } catch (e) {
+      queueDispatchServerAction()
     }
   }
 
-  setTimeout(dispatchServerAction, 10)
+  function queueDispatchServerAction() {
+    clearTimeout(timeout) // never queue more than one at a time.
+    timeout = window.setTimeout(dispatchServerAction, dispatchDelay)
+  }
+
+  queueDispatchServerAction()
 
   return function (action) {
     const { type, payload } = action

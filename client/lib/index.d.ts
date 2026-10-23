@@ -7,12 +7,13 @@ export declare const JasonContext: import("react").Context<{
     subscribe: null;
     eager: (entity: any, id: any, relations: any) => void;
 }>;
-export declare const JasonProvider: ({ reducers, middleware, enhancers, extraActions, transportOptions, children }: {
+export declare const JasonProvider: ({ reducers, middleware, enhancers, extraActions, transportOptions, dispatchDelay, children }: {
     reducers?: any;
     middleware?: any;
     enhancers?: any;
     extraActions?: any;
     transportOptions?: any;
+    dispatchDelay?: number | undefined;
     children?: import("react").FC<{}> | undefined;
 }) => JSX.Element;
 export declare const useAct: typeof _useAct;

@@ -1,1 +1,1 @@
-export default function createOptDis(schema: any, dispatch: any, restClient: any, serverActionQueue: any): (action: any) => any;
+export default function createOptDis(schema: any, dispatch: any, restClient: any, serverActionQueue: any, dispatchDelay: any): (action: any) => any;

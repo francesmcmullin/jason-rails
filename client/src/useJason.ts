@@ -14,7 +14,7 @@ import md5 from 'blueimp-md5'
 import _ from 'lodash'
 import React, { useState, useEffect } from 'react'
 
-export default function useJason({ reducers, middleware = [], enhancers = [], transportOptions = {}, extraActions }: { reducers?: any, middleware?: any[], enhancers?: any[], extraActions?: any, transportOptions?: any }) {
+export default function useJason({ reducers, middleware = [], enhancers = [], transportOptions = {}, dispatchDelay = 10, extraActions }: { reducers?: any, middleware?: any[], enhancers?: any[], extraActions?: any, transportOptions?: any, dispatchDelay?: number }) {
   const [store, setStore] = useState(null as any)
   const [value, setValue] = useState(null as any)
 
@@ -38,7 +38,7 @@ export default function useJason({ reducers, middleware = [], enhancers = [], tr
       const store = configureStore({ reducer: allReducers, middleware: [...middleware, pruneIdsMiddleware(schema)], enhancers })
       const dispatch = store.dispatch
 
-      const optDis = createOptDis(schema, dispatch, restClient, serverActionQueue)
+      const optDis = createOptDis(schema, dispatch, restClient, serverActionQueue, dispatchDelay)
       const actions = createActions(schema, store, restClient, optDis, extraActions)
 
       let payloadHandlers = {}

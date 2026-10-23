@@ -14,8 +14,9 @@ function enrich(type, payload) {
     }
     return payload;
 }
-function createOptDis(schema, dispatch, restClient, serverActionQueue) {
+function createOptDis(schema, dispatch, restClient, serverActionQueue, dispatchDelay) {
     const plurals = lodash_1.default.keys(schema).map(k => pluralize_1.default(k));
+    let timeout = 0;
     function notify() {
         const { queue, inFlight } = serverActionQueue.getData();
         dispatch({ type: 'jason/upsert', payload: { queueSize: queue.length, inFlight } });
@@ -29,7 +30,7 @@ function createOptDis(schema, dispatch, restClient, serverActionQueue) {
             const item = serverActionQueue.getItem();
             notify();
             if (!item)
-                return;
+                return queueDispatchServerAction();
             const { id, action } = item;
             restClient.post('/jason/api/action', action)
                 .then(({ data }) => serverActionQueue.itemProcessed(id, data))
@@ -37,13 +38,18 @@ function createOptDis(schema, dispatch, restClient, serverActionQueue) {
                 console.error("Server action failed", error);
                 dispatch({ type: 'jason/upsert', payload: { error } });
                 serverActionQueue.itemFailed(id, error);
-            }).then(notify);
+            }).then(notify)
+                .then(queueDispatchServerAction, queueDispatchServerAction);
         }
-        finally {
-            setTimeout(dispatchServerAction, 10);
+        catch (e) {
+            queueDispatchServerAction();
         }
     }
-    setTimeout(dispatchServerAction, 10);
+    function queueDispatchServerAction() {
+        clearTimeout(timeout); // never queue more than one at a time.
+        timeout = window.setTimeout(dispatchServerAction, dispatchDelay);
+    }
+    queueDispatchServerAction();
     return function (action) {
         const { type, payload } = action;
         const data = enrich(type, payload);
