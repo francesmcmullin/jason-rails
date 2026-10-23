@@ -25,20 +25,25 @@ function createOptDis(schema, dispatch, restClient, serverActionQueue) {
         return serverActionQueue.addItem(action);
     }
     function dispatchServerAction() {
-        const item = serverActionQueue.getItem();
-        notify();
-        if (!item)
-            return;
-        const { id, action } = item;
-        restClient.post('/jason/api/action', action)
-            .then(({ data }) => serverActionQueue.itemProcessed(id, data))
-            .catch(error => {
-            console.error("Server action failed", error);
-            dispatch({ type: 'jason/upsert', payload: { error } });
-            serverActionQueue.itemFailed(id, error);
-        }).then(notify);
+        try {
+            const item = serverActionQueue.getItem();
+            notify();
+            if (!item)
+                return;
+            const { id, action } = item;
+            restClient.post('/jason/api/action', action)
+                .then(({ data }) => serverActionQueue.itemProcessed(id, data))
+                .catch(error => {
+                console.error("Server action failed", error);
+                dispatch({ type: 'jason/upsert', payload: { error } });
+                serverActionQueue.itemFailed(id, error);
+            }).then(notify);
+        }
+        finally {
+            setTimeout(dispatchServerAction, 10);
+        }
     }
-    setInterval(dispatchServerAction, 10);
+    setTimeout(dispatchServerAction, 10);
     return function (action) {
         const { type, payload } = action;
         const data = enrich(type, payload);
